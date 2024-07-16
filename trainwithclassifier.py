@@ -49,8 +49,8 @@ class Yinda_calculator(accuracy_calculator.AccuracyCalculator):
     def calculate_acc_yinda(self, knn_labels, query_labels, **kwargs):
         # 将 query_labels 转换为一维数组
         data=kwargs['classifier_and_labels']
-        data_logit = data['val'][0].cpu().numpy()
-        labels = data['val'][1].cpu().numpy()
+        data_logit = data[0].cpu().numpy()
+        labels = data[1].cpu().numpy()
         argmax_indices = np.argmax(data_logit, axis=1)
         # 计算准确率
         return accuracy_score(labels,argmax_indices )
@@ -60,8 +60,8 @@ class Yinda_calculator(accuracy_calculator.AccuracyCalculator):
 
     def calculate_auc_yinda(self, knn_labels, query_labels, **kwargs):
         data = kwargs['classifier_and_labels']
-        labels = data['val'][1].cpu().numpy()  # 真实标签
-        data_logit = data['val'][0].cpu().numpy()  # 预测分数
+        labels = data[1].cpu().numpy()  # 真实标签
+        data_logit = data[0].cpu().numpy()  # 预测分数
 
         # 然后使用归一化后的值计算置信度分数
         probabilities = softmax(data_logit, axis=1)
@@ -134,42 +134,6 @@ class Conv1DModel(nn.Module):
         x = x.squeeze(1)
         return x
 
-
-# This will be used to create train and val sets that are class-disjoint
-class ClassDisjointCIFAR100(torch.utils.data.Dataset):
-    def __init__(self, original_train, original_val, train, transform):
-        rule = (lambda x: x < 50) if train else (lambda x: x >= 50)
-        train_filtered_idx = [
-            i for i, x in enumerate(original_train.targets) if rule(x)
-        ]
-        val_filtered_idx = [i for i, x in enumerate(original_val.targets) if rule(x)]
-        self.data = np.concatenate(
-            [
-                original_train.data[train_filtered_idx],
-                original_val.data[val_filtered_idx],
-            ],
-            axis=0,
-        )
-        self.targets = np.concatenate(
-            [
-                np.array(original_train.targets)[train_filtered_idx],
-                np.array(original_val.targets)[val_filtered_idx],
-            ],
-            axis=0,
-        )
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        img, target = self.data[index], self.targets[index]
-        img = Image.fromarray(img)
-        if self.transform is not None:
-            img = self.transform(img)
-        return img, target
-
-
 class mnfDataset(torch.utils.data.Dataset):
     def __init__(self, file_path, sheet_name, transform=None, device=None):
         # 读取Excel文件
@@ -230,9 +194,9 @@ def visualizer_hook(umapper, umap_embeddings, labels, split_name, keyname, marke
 
 if __name__ == '__main__':
     from multiprocessing import freeze_support
-    log_dir=r"E:\yinda\mnf\result\mlp\log"
-    tensorboard_dir=r"E:\yinda\mnf\result\mlp\tensorboard"
-    model_save_dir=r"E:\yinda\mnf\result\mlp\model"
+    log_dir=r"E:\yinda\mnf\result\tmp\log"
+    tensorboard_dir=r"E:\yinda\mnf\result\tmp\tensorboard"
+    model_save_dir=r"E:\yinda\mnf\result\tmp\model"
     freeze_support()
     # Set other training parameters
     batch_size = 32
@@ -254,14 +218,8 @@ if __name__ == '__main__':
 
     # trunk_output_size = 32  # 根据你的输入维度来设定
     # trunk = torch.nn.DataParallel(Conv1DModel()).to(device)
-
-
-    # Set embedder model. This takes in the output of the trunk and outputs 64 dimensional embeddings
     embedder = torch.nn.DataParallel(MLP([trunk_output_size, 64]).to(device))
 
-    # Set the classifier. The classifier will take the embeddings and output a 50 dimensional vector.
-    # (Our training set will consist of the first 50 classes of the CIFAR100 dataset.)
-    # We'll specify the classification loss further down in the code.
     classifier = torch.nn.DataParallel(MLP([64, 2])).to(device)
 
     # Set optimizers
@@ -272,58 +230,21 @@ if __name__ == '__main__':
     classifier_optimizer = torch.optim.Adam(
         classifier.parameters(), lr=0.0001, weight_decay=0.0001
     )
-
-    # Set the image transforms
-    train_transform = transforms.Compose(
-        [
-            transforms.Resize(64),
-            transforms.RandomResizedCrop(scale=(0.16, 1), ratio=(0.75, 1.33), size=64),
-            transforms.RandomHorizontalFlip(0.5),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
-
-    val_transform = transforms.Compose(
-        [
-            transforms.Resize(64),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
-
     """## Create the dataset and class-disjoint train/val splits"""
-    # Download the original datasets
 
-
-    # original_train = datasets.CIFAR100(
-    #     root="CIFAR100_Dataset", train=True, transform=None, download=True
-    # )
-    # original_val = datasets.CIFAR100(
-    #     root="CIFAR100_Dataset", train=False, transform=None, download=True
-    # )
-    #
-    # # Class disjoint training and validation set
-    # train_dataset = ClassDisjointCIFAR100(
-    #     original_train, original_val, True, train_transform
-    # )
-    # val_dataset = ClassDisjointCIFAR100(original_train, original_val, False, val_transform)
     train_dataset = mnfDataset(file_path='E:\yinda\mnf\归一化后的数据.xlsx', sheet_name='训练集',transform=None,device=device)
     val_dataset =mnfDataset(file_path='E:\yinda\mnf\归一化后的数据.xlsx', sheet_name='西溪验证集',transform=None,device=device)
-
-    # assert set(train_dataset.targets).isdisjoint(set(val_dataset.targets))
+    hold_out_dataset = mnfDataset(file_path='E:\yinda\mnf\归一化后的数据.xlsx', sheet_name='留出集', transform=None,
+                             device=device)
+    zheyi_dataset = mnfDataset(file_path='E:\yinda\mnf\归一化后的数据.xlsx', sheet_name='浙一验证集', transform=None,
+                             device=device)
 
     """##Create the loss, miner, sampler, and package them into dictionaries
     """
     # Set the loss function
     loss = losses.TripletMarginLoss(margin=0.1)
-    # loss = torch.nn.CrossEntropyLoss()
-    # Set the classification loss:
     classification_loss = torch.nn.CrossEntropyLoss()
-
-    # Set the mining function
     miner = miners.MultiSimilarityMiner(epsilon=0.1)
-
     # Set the dataloader sampler
     sampler = samplers.MPerClassSampler(
         train_dataset.targets, m=4, length_before_new_iter=len(train_dataset)
@@ -350,8 +271,8 @@ if __name__ == '__main__':
     record_keeper, _, _ = logging_presets.get_record_keeper(
         log_dir, tensorboard_dir
     )
-    hooks = logging_presets.get_hook_container(record_keeper)
-    dataset_dict = {"val": val_dataset}
+    hooks = logging_presets.get_hook_container(record_keeper,record_group_name_prefix="best_auc",primary_metric="auc_yinda")
+    dataset_dict = {"val": val_dataset,"train":train_dataset,"hold_out":hold_out_dataset,"zheyi":zheyi_dataset}
     model_folder = model_save_dir
 
     metric_yinda=Yinda_calculator(

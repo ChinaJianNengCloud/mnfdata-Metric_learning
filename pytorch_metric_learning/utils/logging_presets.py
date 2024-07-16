@@ -356,6 +356,7 @@ class HookContainer:
             else ""
         )
         base_record_group_name += tester.description_suffixes("accuracies")
+        base_record_group_name="best_auc"
         return base_record_group_name
 
     def record_group_name(self, tester, split_name):

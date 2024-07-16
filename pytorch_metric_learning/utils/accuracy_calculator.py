@@ -419,8 +419,10 @@ class AccuracyCalculator:
         reference=None,
         reference_labels=None,
         ref_includes_query=False,
+        query_split_name=None,
         include=(),
         exclude=(),
+
     ):
         if reference is None:
             reference = query
@@ -453,7 +455,8 @@ class AccuracyCalculator:
             "reference_labels": reference_labels,
             "ref_includes_query": ref_includes_query,
             "label_comparison_fn": self.label_comparison_fn,
-            "classifier_and_labels":classifier_and_labels
+            "classifier_and_labels":classifier_and_labels,
+            "query_split_name":query_split_name
         }
 
         if any(x in self.requires_knn() for x in self.get_curr_metrics()):

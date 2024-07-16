@@ -41,8 +41,8 @@ class Yinda_calculator(AccuracyCalculator):
     def calculate_acc_yinda(self, knn_labels, query_labels, **kwargs):
         # 将 query_labels 转换为一维数组
         data=kwargs['classifier_and_labels']
-        data_logit = data['val'][0].cpu().numpy()
-        labels = data['val'][1].cpu().numpy()
+        data_logit = data[0].cpu().numpy()
+        labels = data[1].cpu().numpy()
         argmax_indices = np.argmax(data_logit, axis=1)
         # 计算准确率
         return accuracy_score(labels,argmax_indices )
@@ -52,8 +52,8 @@ class Yinda_calculator(AccuracyCalculator):
 
     def calculate_auc_yinda(self, knn_labels, query_labels, **kwargs):
         data = kwargs['classifier_and_labels']
-        labels = data['val'][1].cpu().numpy()  # 真实标签
-        data_logit = data['val'][0].cpu().numpy()  # 预测分数
+        labels = data[1].cpu().numpy()  # 真实标签
+        data_logit = data[0].cpu().numpy()  # 预测分数
 
         # 然后使用归一化后的值计算置信度分数
         probabilities = softmax(data_logit, axis=1)
@@ -168,9 +168,9 @@ if __name__ == '__main__':
         name="西溪验证集"
     elif(a==4):
         name="浙一验证集"
-    log_dir = r"E:\yinda\mnf\result\mlp\留出集"
-    tensorboard_dir = r"E:\yinda\mnf\result\mlp\留出集"
-    model_save_dir = r"E:\yinda\mnf\result\mlp\留出集"
+    log_dir = r"E:\yinda\mnf\result\tmp\训练集"
+    tensorboard_dir = r"E:\yinda\mnf\result\tmp\训练集"
+    model_save_dir = r"E:\yinda\mnf\result\tmp\训练集"
     batch_size = 32
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -180,14 +180,14 @@ if __name__ == '__main__':
     embedder = MLP([trunk_output_size, 64]).to(device)
     classifier = MLP([64, 2]).to(device)
 
-    test_dataset = mnfDataset(file_path='E:\yinda\mnf\归一化后的数据.xlsx', sheet_name='留出集', transform=None, device=device)
+    test_dataset = mnfDataset(file_path='E:\yinda\mnf\归一化后的数据.xlsx', sheet_name='训练集', transform=None, device=device)
     # dataloader = DataLoader(test_dataset, batch_size=1024, shuffle=True, num_workers=4)
 
     labels_to_indices = c_f.get_labels_to_indices(test_dataset.targets)
 
-    checkpoint_path_trunk = r"E:\yinda\mnf\result\mlp\model\trunk_best89.pth"
-    checkpoint_path_embedder = r"E:\yinda\mnf\result\mlp\model\embedder_best89.pth"
-    checkpoint_path_classifier = r"E:\yinda\mnf\result\mlp\model\classifier_best89.pth"
+    checkpoint_path_trunk = r"E:\yinda\mnf\result\tmp\model\trunk_best98.pth"
+    checkpoint_path_embedder = r"E:\yinda\mnf\result\tmp\model\embedder_best98.pth"
+    checkpoint_path_classifier = r"E:\yinda\mnf\result\tmp\model\classifier_best98.pth"
 
     checkpoint_trunk = torch.load(checkpoint_path_trunk)
     checkpoint_embedder = torch.load(checkpoint_path_embedder)

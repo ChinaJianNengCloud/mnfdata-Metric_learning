@@ -275,8 +275,8 @@ class BaseTester:
             embedding[split_name], classifier[split_name],labels[split_name] = self.get_all_embeddings(
                 dataset_dict[split_name], trunk_model, embedder_model, classifier_model,collate_fn
             )
-        embeddings_and_labels[split_name]=(embedding[split_name],labels[split_name])
-        classifier_and_labels[split_name] = (classifier[split_name],labels[split_name])
+            embeddings_and_labels[split_name]=(embedding[split_name],labels[split_name])
+            classifier_and_labels[split_name] = (classifier[split_name],labels[split_name])
         return embeddings_and_labels,classifier_and_labels
              
                 
@@ -312,7 +312,6 @@ class BaseTester:
             splits_to_compute_embeddings,
         ) = self.get_splits_to_compute_embeddings(dataset_dict, splits_to_eval)
         self.embeddings_and_labels, self.classifier_and_labels= self.get_all_embeddings_for_all_splits(
-    
             dataset_dict,
             trunk_model,
             embedder_model,
