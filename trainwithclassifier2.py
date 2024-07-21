@@ -214,7 +214,7 @@ def visualizer_hook(umapper, umap_embeddings, labels, split_name, keyname, marke
 
 if __name__ == '__main__':
     from multiprocessing import freeze_support
-    exp_name="mlp_newdata"
+    exp_name="oneconv_newdata"
     log_dir=fr"E:\yinda\mnf\result\{exp_name}\log"
     tensorboard_dir=fr"E:\yinda\mnf\result\{exp_name}\tensorboard"
     model_save_dir=fr"E:\yinda\mnf\result\{exp_name}\model"
@@ -230,11 +230,11 @@ if __name__ == '__main__':
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Set trunk model and replace the softmax layer with an identity function
 
-    trunk_output_size = 32  # 根据你的输入维度来设定
-    trunk = torch.nn.DataParallel(MLP([trunk_output_size,64,64,64 ,32]).to(device))
-
     # trunk_output_size = 32  # 根据你的输入维度来设定
-    # trunk = torch.nn.DataParallel(Conv1DModel()).to(device)
+    # trunk = torch.nn.DataParallel(MLP([trunk_output_size,64,64,64 ,32]).to(device))
+
+    trunk_output_size = 32  # 根据你的输入维度来设定
+    trunk = torch.nn.DataParallel(Conv1DModel()).to(device)
     embedder = torch.nn.DataParallel(MLP([trunk_output_size, 64]).to(device))
 
     classifier = torch.nn.DataParallel(MLP([64, 2])).to(device)
